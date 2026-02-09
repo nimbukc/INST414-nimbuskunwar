@@ -2,50 +2,77 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load datasets
-# New York Times COVID deaths data
 deaths_df = pd.read_csv("us-states.csv")
 
-# Vaccination data
-vax_df = pd.read_csv("COVID-19_Vaccinations_in_the_United_States,Jurisdiction.csv")
+vax_df = pd.read_csv(
+    "COVID-19_Vaccinations_in_the_United_States,Jurisdiction.csv",
+    low_memory=False
+)
 
-# State population data 
-pop_df = pd.read_csv("historical_state_population_by_year.csv")
+pop_df = pd.read_csv(
+    "historical_state_population_by_year.csv",
+    header=None,
+    names=["state_abbr", "year", "population"]
+)
 
-# Clean & prepare population data Keep only 2020 population data
+# Prepare population data
 pop_df = pop_df[pop_df["year"] == 2020]
 
-# Remove rows with missing population
-pop_df = pop_df.dropna(subset=["population"])
+# Map state abbreviations to full names
+state_map = {
+    "AL":"Alabama","AK":"Alaska","AZ":"Arizona","AR":"Arkansas","CA":"California",
+    "CO":"Colorado","CT":"Connecticut","DE":"Delaware","FL":"Florida","GA":"Georgia",
+    "HI":"Hawaii","ID":"Idaho","IL":"Illinois","IN":"Indiana","IA":"Iowa",
+    "KS":"Kansas","KY":"Kentucky","LA":"Louisiana","ME":"Maine","MD":"Maryland",
+    "MA":"Massachusetts","MI":"Michigan","MN":"Minnesota","MS":"Mississippi",
+    "MO":"Missouri","MT":"Montana","NE":"Nebraska","NV":"Nevada","NH":"New Hampshire",
+    "NJ":"New Jersey","NM":"New Mexico","NY":"New York","NC":"North Carolina",
+    "ND":"North Dakota","OH":"Ohio","OK":"Oklahoma","OR":"Oregon","PA":"Pennsylvania",
+    "RI":"Rhode Island","SC":"South Carolina","SD":"South Dakota","TN":"Tennessee",
+    "TX":"Texas","UT":"Utah","VT":"Vermont","VA":"Virginia","WA":"Washington",
+    "WV":"West Virginia","WI":"Wisconsin","WY":"Wyoming"
+}
 
-pop_df = pop_df[["state", "population"]]
+pop_df["state"] = pop_df["state_abbr"].map(state_map)
+pop_df = pop_df[["state", "population"]].dropna()
 
-# Clean & prepare deaths data
-# Convert date column to datetime
+# Prepare deaths data
 deaths_df["date"] = pd.to_datetime(deaths_df["date"])
-
-# Keep most recent record for each state
 latest_deaths = deaths_df.sort_values("date").groupby("state").tail(1)
-
 latest_deaths = latest_deaths[["state", "deaths"]]
 
-# Clean & prepare vaccination data
-# Remove rows with missing vaccination rates
+# Prepare vaccination data
 vax_df = vax_df.dropna(subset=["Series_Complete_Pop_Pct"])
-
-# Keep most recent vaccination data for each state
 latest_vax = vax_df.sort_values("Date").groupby("Location").tail(1)
 
-latest_vax = latest_vax[["Location", "Series_Complete_Pop_Pct"]]
+latest_vax["state"] = latest_vax["Location"].map(state_map)
+latest_vax = latest_vax[["state", "Series_Complete_Pop_Pct"]]
 latest_vax.columns = ["state", "vaccination_rate"]
 
 # Merge datasets
-merged = latest_deaths.merge(pop_df, on="state", how="inner")
-merged = merged.merge(latest_vax, on="state", how="inner")
+merged = latest_deaths.merge(pop_df, on="state")
+merged = merged.merge(latest_vax, on="state")
 
 # Calculate death rate per 100k
 merged["death_rate_per_100k"] = (
     merged["deaths"] / merged["population"]
 ) * 100000
 
-# View final cleaned data
-merged.head()
+print(merged.head())
+# Rank states by death rate (highest = rank 1)
+merged["death_rate_rank"] = merged["death_rate_per_100k"].rank(ascending=False)
+
+# Rank states by vaccination rate (lowest = rank 1)
+merged["vaccination_rank"] = merged["vaccination_rate"].rank(ascending=True)
+
+# Show top 10 states by death rate
+ranked = merged.sort_values("death_rate_per_100k", ascending=False)
+
+print(
+    ranked[[
+        "state",
+        "vaccination_rate",
+        "death_rate_per_100k",
+        "death_rate_rank"
+    ]].head(10)
+)
