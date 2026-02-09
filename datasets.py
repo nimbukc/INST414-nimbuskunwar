@@ -59,20 +59,3 @@ merged["death_rate_per_100k"] = (
 ) * 100000
 
 print(merged.head())
-# Rank states by death rate (highest = rank 1)
-merged["death_rate_rank"] = merged["death_rate_per_100k"].rank(ascending=False)
-
-# Rank states by vaccination rate (lowest = rank 1)
-merged["vaccination_rank"] = merged["vaccination_rate"].rank(ascending=True)
-
-# Show top 10 states by death rate
-ranked = merged.sort_values("death_rate_per_100k", ascending=False)
-
-print(
-    ranked[[
-        "state",
-        "vaccination_rate",
-        "death_rate_per_100k",
-        "death_rate_rank"
-    ]].head(10)
-)
