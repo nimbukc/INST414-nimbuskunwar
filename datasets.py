@@ -58,4 +58,20 @@ merged["death_rate_per_100k"] = (
     merged["deaths"] / merged["population"]
 ) * 100000
 
-print(merged.head())
+merged.sort_values("death_rate_per_100k", ascending=False).head(10)
+# Rank states by death rate per 100k (highest = rank 1)
+merged["death_rate_rank"] = merged["death_rate_per_100k"].rank(
+    ascending=False, method="dense"
+)
+# Sort by highest death rate
+ranked = merged.sort_values("death_rate_per_100k", ascending=False)
+# Show top 10 states with highest death rates
+print(
+    ranked[[
+        "state",
+        "population",
+        "deaths",
+        "vaccination_rate",
+        "death_rate_per_100k"
+    ]].head(10)
+)
