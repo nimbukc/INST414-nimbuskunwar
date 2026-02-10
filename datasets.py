@@ -75,3 +75,15 @@ print(
         "death_rate_per_100k"
     ]].head(10)
 )
+
+plt.figure()
+plt.scatter(
+    merged["vaccination_rate"],
+    merged["death_rate_per_100k"]
+)
+
+plt.xlabel("Vaccination Rate (%)")
+plt.ylabel("COVID-19 Death Rate per 100,000")
+plt.title("COVID-19 Death Rates vs Vaccination Rates by U.S. State")
+
+plt.show()
